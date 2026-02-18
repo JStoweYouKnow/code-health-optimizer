@@ -1,0 +1,11 @@
+{
+  "name": "sample-repo",
+  "version": "1.0.0",
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "unused-package": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

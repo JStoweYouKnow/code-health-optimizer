@@ -1,0 +1,19 @@
+# .gitlab/agents/code-optimizer/workflows/report.yaml
+name: "Code Health Report"
+description: "Creates GitLab issues from analysis findings"
+
+steps:
+  - id: load_findings
+    name: "Load Analysis Findings"
+    action: file.read
+    inputs:
+      path: "${ANALYSIS_OUTPUT_PATH}"
+
+  - id: create_issues
+    name: "Create Issues"
+    action: gitlab.create_issues
+    inputs:
+      findings: "${load_findings.content}"
+      labels:
+        - "code-health"
+        - "automated"

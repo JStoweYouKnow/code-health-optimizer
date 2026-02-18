@@ -1,0 +1,61 @@
+# .gitlab/agents/code-optimizer/config.yaml
+agent:
+  name: "Code Health Optimizer"
+  description: "Analyzes codebases for dead code, duplicates, and efficiency issues"
+  version: "1.0.0"
+
+triggers:
+  # Scheduled weekly scans
+  - type: schedule
+    cron: "0 2 * * 0"  # Every Sunday at 2 AM
+    workflow: analyze
+
+  # Manual trigger via label
+  - type: label_added
+    label: "code-health-scan"
+    workflow: analyze
+
+  # On merge to main (optional)
+  - type: merge_request_merged
+    target_branch: main
+    workflow: incremental_analyze
+
+tools:
+  # Access to GitLab APIs
+  - name: gitlab_api
+    permissions:
+      - read_repository
+      - create_issue
+      - create_merge_request
+      - read_merge_request
+
+  # File system access for code analysis
+  - name: code_reader
+    permissions:
+      - read_files
+      - analyze_ast
+
+  # External LLM integration
+  - name: anthropic_claude
+    config:
+      model: "claude-sonnet-4-20250514"
+      max_tokens: 4000
+
+settings:
+  # Languages to analyze
+  supported_languages:
+    - javascript
+    - typescript
+    - python
+    - ruby
+    - go
+
+  # Thresholds for flagging issues
+  thresholds:
+    dead_code_confidence: 0.85
+    duplicate_similarity: 0.75
+    unused_dependency_days: 90
+
+  # Safety settings
+  auto_create_mrs: false  # Require human approval
+  max_issues_per_run: 20
