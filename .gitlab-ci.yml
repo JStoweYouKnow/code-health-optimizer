@@ -1,0 +1,47 @@
+stages:
+  - test
+  - analyze
+
+variables:
+  NODE_VERSION: "20"
+
+# Use Node.js image
+default:
+  image: node:${NODE_VERSION}-alpine
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+
+# Install dependencies
+install:
+  stage: test
+  script:
+    - npm ci
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 hour
+
+# Run tests
+test:
+  stage: test
+  needs: [install]
+  script:
+    - npm ci
+    - npm test
+
+# Run code health analysis (uses this repo as the target)
+analyze:
+  stage: analyze
+  needs: [install]
+  script:
+    - npm ci
+    - npm run build
+    - REPO_PATH=$CI_PROJECT_DIR npm run analyze
+  variables:
+    # Optional: set in GitLab CI/CD Variables for full features
+    # ANTHROPIC_API_KEY: (set in UI)
+    # GITLAB_TOKEN: (set in UI)
+    # GITLAB_PROJECT_ID: (set in UI)
+  allow_failure: true  # Don't fail pipeline if analyzer hits API limits
