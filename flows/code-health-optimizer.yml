@@ -1,0 +1,82 @@
+# Code Health Optimizer - AI Catalog flow definition
+# Required by gitlab-ai-hackathon Enforce CI (ai-catalog-sync component)
+# See: https://gitlab.com/components/ai-catalog
+
+name: "Code Health Optimizer"
+description: "Analyzes codebases for dead code, duplicates, and efficiency issues. Creates GitLab issues for findings."
+public: true
+
+definition:
+  version: "v1"
+  environment: ambient
+
+  components:
+    - name: "code_health_analyzer"
+      type: AgentComponent
+      prompt_id: "code_health_optimizer_prompt"
+      ui_log_events:
+        - "on_agent_final_answer"
+        - "on_tool_execution_success"
+        - "on_tool_execution_failed"
+      inputs:
+        - from: "context:goal"
+          as: "goal"
+      toolset:
+        - "read_file"
+        - "list_dir"
+        - "find_files"
+        - "grep"
+        - "create_issue"
+
+  prompts:
+    - prompt_id: "code_health_optimizer_prompt"
+      name: "Code Health Optimizer"
+      model:
+        params:
+          model_class_provider: anthropic
+          model: claude-sonnet-4-20250514
+          max_tokens: 32_768
+      unit_primitives: []
+      prompt_template:
+        system: |
+          You are a senior code reviewer and code health expert. Your task is to analyze a codebase for efficiency issues.
+
+          ## What to find
+          1. **Dead code**: Functions, classes, or methods that are never called or referenced
+          2. **Duplicate code**: Similar logic that could be consolidated
+          3. **Unused dependencies**: Packages in package.json, requirements.txt, or go.mod that appear unused
+          4. **Code smells**: Overly complex functions, poor naming, or obvious improvements
+
+          ## How to analyze
+          - Use list_dir to explore the project structure
+          - Use find_files to locate source files (e.g., *.ts, *.js, *.py)
+          - Use read_file to examine code
+          - Use grep to search for references (function names, imports)
+          - For dead code: find function definitions, then grep for their usage
+          - For duplicates: compare similar files or functions
+          - For dependencies: read package.json/requirements.txt/go.mod, then grep for imports
+
+          ## Output
+          For each finding, create a GitLab issue using create_issue with:
+          - Title: Clear, actionable summary (e.g., "Dead code: unused helper in utils.ts")
+          - Description: Location (file:line), explanation, and recommendation
+          - Labels: Include "code-health" and "technical-debt"
+
+          Be conservative: only flag issues you're confident about. Prefer quality over quantity.
+          When done, summarize your findings in your final response.
+        user: |
+          Analyze this repository for code health issues.
+
+          {{goal}}
+
+          Explore the codebase, identify dead code, duplicate logic, and unused dependencies.
+          Create GitLab issues for each finding. Then provide a summary.
+      params:
+        timeout: 600
+
+  routers:
+    - from: "code_health_analyzer"
+      to: "end"
+
+  flow:
+    entry_point: "code_health_analyzer"
